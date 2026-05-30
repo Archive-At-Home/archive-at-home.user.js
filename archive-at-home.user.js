@@ -2,7 +2,7 @@
 // @name         A@H 下载助手
 // @description  从 archive-at-home.org 获取 E-Hentai 归档下载链接
 // @namespace    https://github.com/Archive-At-Home
-// @version      0.1.0
+// @version      0.1.1
 // @author       https://github.com/taskmgr818
 // @homepageURL  https://github.com/Archive-At-Home/archive-at-home.user.js
 // @supportURL   https://github.com/Archive-At-Home/archive-at-home.user.js/issues
@@ -190,6 +190,8 @@
                 gallery_id: galleryId,
                 gallery_key: galleryKey,
                 force,
+            }, {
+                'X-Client': 'tampermonkey/aah-download-helper',
             });
 
             renderParseResult(box, data);
@@ -202,7 +204,7 @@
         }
     }
 
-    function apiRequest(key, method, path, body) {
+    function apiRequest(key, method, path, body, extraHeaders = {}) {
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method,
@@ -211,6 +213,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                     ...(key?.trim() && { Authorization: `Bearer ${key.trim()}` }),
+                    ...extraHeaders,
                 },
                 data: body ? JSON.stringify(body) : undefined,
                 onload: (response) => {
