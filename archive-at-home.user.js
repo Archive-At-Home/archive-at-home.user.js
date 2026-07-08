@@ -2,7 +2,7 @@
 // @name         A@H 下载助手
 // @description  从 archive-at-home.org 获取 E-Hentai 归档下载链接
 // @namespace    https://github.com/Archive-At-Home
-// @version      0.1.1
+// @version      0.2.0
 // @author       https://github.com/taskmgr818
 // @homepageURL  https://github.com/Archive-At-Home/archive-at-home.user.js
 // @supportURL   https://github.com/Archive-At-Home/archive-at-home.user.js/issues
@@ -86,7 +86,6 @@
 
         const gallery = extractGalleryInfo();
         const profileContent = el('div', { className: 'ah-info', text: '正在加载资料...' });
-        const checkinMessage = messageBox();
         const parseMessage = messageBox();
         const autoDownload = el('input', {
             type: 'checkbox',
@@ -107,25 +106,8 @@
         profileSection.append(
             profileContent,
             el('div', { className: 'ah-row' },
-                button('刷新资料', 'secondary', () => loadProfile(key, profileContent, checkinMessage)),
-                button('每日签到', 'primary', async () => {
-                    setMessage(checkinMessage, '正在签到...', 'info');
-                    try {
-                        const data = await apiRequest(key, 'POST', '/api/v1/me/checkin');
-                        setMessage(
-                            checkinMessage,
-                            data.success
-                                ? `签到成功，获得 ${data.reward} GP，当前余额 ${data.balance} GP`
-                                : (data.message || '签到失败'),
-                            data.success ? 'success' : 'error',
-                        );
-                        await loadProfile(key, profileContent);
-                    } catch (error) {
-                        setMessage(checkinMessage, error.message || '签到失败', 'error');
-                    }
-                }),
+                button('刷新资料', 'secondary', () => loadProfile(key, profileContent)),
             ),
-            checkinMessage,
         );
 
         parseSection.append(
@@ -147,10 +129,10 @@
         panel.append(createHeader('A@H 下载助手', '已连接到 archive-at-home.org'), body);
         body.append(profileSection, parseSection);
 
-        loadProfile(key, profileContent, checkinMessage);
+        loadProfile(key, profileContent);
     }
 
-    async function loadProfile(key, container, feedbackBox) {
+    async function loadProfile(key, container) {
         // 使用占位符保持高度稳定，防止页面跳跃
         container.replaceChildren(el('div', { className: 'ah-loading-placeholder' }));
 
@@ -160,18 +142,10 @@
                 infoRow('ID', data.user.id),
                 infoRow('昵称', data.user.nickname || '-'),
                 infoRow('余额', `${data.balance} GP`),
-                infoRow('签到时间', formatTime(data.user.last_checkin_at)),
             );
-
-            if (feedbackBox) {
-                setMessage(feedbackBox, '', '');
-            }
         } catch (error) {
             container.replaceChildren();
             container.textContent = error.message || '获取资料失败';
-            if (feedbackBox) {
-                setMessage(feedbackBox, 'API Key 可能已失效，请重新登录。', 'error');
-            }
         }
     }
 
@@ -361,14 +335,6 @@
             el('span', { className: 'ah-info-label', text: label }),
             el('span', { className: 'ah-info-value', text: value }),
         );
-    }
-
-    function formatTime(value) {
-        if (!value) {
-            return '未签到';
-        }
-
-        return new Date(value).toLocaleString('zh-CN');
     }
 
     function el(tag, { text, ...props } = {}, ...children) {
