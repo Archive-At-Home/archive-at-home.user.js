@@ -2,7 +2,7 @@
 // @name         A@H 下载助手
 // @description  从 archive-at-home.org 获取 E-Hentai 归档下载链接
 // @namespace    https://github.com/Archive-At-Home
-// @version      0.2.0
+// @version      0.2.1
 // @author       https://github.com/taskmgr818
 // @homepageURL  https://github.com/Archive-At-Home/archive-at-home.user.js
 // @supportURL   https://github.com/Archive-At-Home/archive-at-home.user.js/issues
@@ -75,12 +75,60 @@
         const body = el('div', { className: 'ah-body' });
 
         if (!key) {
+            const loginMessage = messageBox();
+            const keyInput = el('input', {
+                className: 'ah-input',
+                type: 'password',
+                placeholder: '输入 API Key',
+                autocomplete: 'off',
+                spellcheck: false,
+            });
+            const loginSection = section('登录方式');
+            const keySection = section('API Key');
+
             panel.append(
                 createHeader('A@H 下载助手', '账号未登录，请先登录。'),
                 body,
             );
 
-            body.append(button('使用 Telegram 登录', 'primary', () => window.open(AUTH_URL, '_blank')));
+            loginSection.append(
+                el('div', { className: 'ah-row' },
+                    button('使用 Telegram 登录', 'primary', () => window.open(AUTH_URL, '_blank')),
+                ),
+            );
+
+            keySection.append(
+                keyInput,
+                el('div', { className: 'ah-row' },
+                    button('保存 API Key', 'secondary', async () => {
+                        const manualKey = keyInput.value.trim();
+                        if (!manualKey) {
+                            setMessage(loginMessage, '请输入 API Key。', 'error');
+                            return;
+                        }
+
+                        await saveManualApiKey(manualKey, loginMessage);
+                    }),
+                ),
+                loginMessage,
+            );
+
+            body.append(loginSection, keySection);
+
+            keyInput.addEventListener('keydown', async (event) => {
+                if (event.key !== 'Enter') {
+                    return;
+                }
+
+                event.preventDefault();
+                const manualKey = keyInput.value.trim();
+                if (!manualKey) {
+                    setMessage(loginMessage, '请输入 API Key。', 'error');
+                    return;
+                }
+
+                await saveManualApiKey(manualKey, loginMessage);
+            });
             return;
         }
 
@@ -175,6 +223,18 @@
             }
         } catch (error) {
             setMessage(box, error.message || '解析失败', 'error');
+        }
+    }
+
+    async function saveManualApiKey(key, box) {
+        setMessage(box, '正在验证 API Key...', 'info');
+
+        try {
+            await apiRequest(key, 'GET', '/api/v1/me');
+            GM_setValue(STORAGE_KEY, key);
+            setMessage(box, 'API Key 已保存。', 'success');
+        } catch (error) {
+            setMessage(box, error.message || 'API Key 验证失败', 'error');
         }
     }
 
@@ -512,6 +572,28 @@
 
             #${PANEL_ID} .ah-toggle input {
                 margin: 0;
+            }
+
+            #${PANEL_ID} .ah-input {
+                width: 100%;
+                box-sizing: border-box;
+                margin-bottom: 8px;
+                border: 1px solid rgba(148, 163, 184, 0.22);
+                border-radius: 10px;
+                padding: 9px 10px;
+                font-size: 12px;
+                color: #f8fafc;
+                background: rgba(15, 23, 42, 0.92);
+                outline: none;
+            }
+
+            #${PANEL_ID} .ah-input::placeholder {
+                color: #64748b;
+            }
+
+            #${PANEL_ID} .ah-input:focus {
+                border-color: rgba(34, 158, 217, 0.65);
+                box-shadow: 0 0 0 3px rgba(34, 158, 217, 0.15);
             }
 
             #${PANEL_ID} .ah-button {
